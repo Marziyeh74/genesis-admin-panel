@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
@@ -21,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { ChevronLeft, Save, Play, Database, TableProperties, FileCode } from "lucide-react";
 import QueryBuilder from "@/components/services/QueryBuilder";
 import StoredProcedureForm from "@/components/services/StoredProcedureForm";
@@ -70,6 +69,7 @@ const ServiceConfiguration = () => {
     authentication: "JWT",
     rateLimit: "100",
     caching: "60",
+    endpoint: "users",
   });
 
   // Simulate loading service data

@@ -23,6 +23,7 @@ interface ApiConfigProps {
     authentication: string;
     rateLimit: string;
     caching: string;
+    endpoint?: string; // Adding optional endpoint property
   };
   onConfigChange: (config: any) => void;
 }
@@ -186,11 +187,11 @@ const ApiConfigForm: React.FC<ApiConfigProps> = ({ initialConfig, onConfigChange
       <div className="pt-4">
         <div className="text-sm font-medium mb-2">API Endpoint Preview</div>
         <div className="bg-muted p-2 rounded-md font-mono text-sm">
-          {config.format === "REST" && `/api/v1/${initialConfig.endpoint}`}
+          {config.format === "REST" && `/api/v1/${initialConfig.endpoint || "service"}`}
           {config.format === "GraphQL" && `/graphql`}
-          {config.format === "gRPC" && `service.${initialConfig.endpoint}`}
-          {config.format === "WebSocket" && `ws://api.example.com/${initialConfig.endpoint}`}
-          {config.format === "MQTT" && `topic/${initialConfig.endpoint}`}
+          {config.format === "gRPC" && `service.${initialConfig.endpoint || "service"}`}
+          {config.format === "WebSocket" && `ws://api.example.com/${initialConfig.endpoint || "service"}`}
+          {config.format === "MQTT" && `topic/${initialConfig.endpoint || "service"}`}
         </div>
       </div>
     </div>
