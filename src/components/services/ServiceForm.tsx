@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useToast } from "@/components/ui/use-toast";
+import SqlEditor from "./SqlEditor";
 
 // Service schema validation
 const serviceSchema = z.object({
@@ -34,6 +36,7 @@ interface ServiceFormProps {
 }
 
 const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }) => {
+  const { toast } = useToast();
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
     defaultValues: service || {
@@ -45,9 +48,31 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
     },
   });
 
+  const serviceType = form.watch("type");
+
+  // Update source description based on selected type
+  const getSourceDescription = () => {
+    switch (serviceType) {
+      case "Database Query":
+        return "Enter your SQL query";
+      case "Stored Procedure":
+        return "Enter the stored procedure name";
+      case "External API":
+        return "Enter the API URL or connection string";
+      default:
+        return "The data source for this service";
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit((data) => {
+        toast({
+          title: service ? "Service updated" : "Service created",
+          description: `${data.name} has been ${service ? "updated" : "created"} successfully.`,
+        });
+        onSubmit(data);
+      })} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -117,12 +142,20 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
           name="source"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Source</FormLabel>
+              <FormLabel>{serviceType === "Database Query" ? "SQL Query" : "Source"}</FormLabel>
               <FormControl>
-                <Input placeholder="Database or API source" {...field} />
+                {serviceType === "Database Query" ? (
+                  <SqlEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="SELECT * FROM users WHERE status = 'active'"
+                  />
+                ) : (
+                  <Input placeholder={serviceType === "Stored Procedure" ? "sp_get_users" : "Database or API source"} {...field} />
+                )}
               </FormControl>
               <FormDescription>
-                The data source for this service
+                {getSourceDescription()}
               </FormDescription>
               <FormMessage />
             </FormItem>
