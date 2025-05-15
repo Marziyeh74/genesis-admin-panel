@@ -15,6 +15,7 @@ import Login from "./pages/auth/Login";
 import NotFound from "./pages/error/NotFound";
 import ServerError from "./pages/error/ServerError";
 import UserManagement from "./pages/users/UserManagement";
+import RoleManagement from "./pages/roles/RoleManagement";
 
 const queryClient = new QueryClient();
 
@@ -40,9 +41,9 @@ const App = () => (
                   
                   {/* Implemented Routes */}
                   <Route path="/users" element={<UserManagement />} />
+                  <Route path="/roles" element={<RoleManagement />} />
                   
                   {/* These routes will be implemented later */}
-                  <Route path="/roles" element={<div>Role Management (To be implemented)</div>} />
                   <Route path="/services" element={<div>Service Management (To be implemented)</div>} />
                   <Route path="/files" element={<div>File Management (To be implemented)</div>} />
                   <Route path="/logs" element={<div>Log Management (To be implemented)</div>} />
