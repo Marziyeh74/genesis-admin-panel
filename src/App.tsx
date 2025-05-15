@@ -16,6 +16,10 @@ import NotFound from "./pages/error/NotFound";
 import ServerError from "./pages/error/ServerError";
 import UserManagement from "./pages/users/UserManagement";
 import RoleManagement from "./pages/roles/RoleManagement";
+import ServiceManagement from "./pages/services/ServiceManagement";
+import ServiceConfiguration from "./pages/services/ServiceConfiguration";
+import ServiceTest from "./pages/services/ServiceTest";
+import ConnectionManagement from "./pages/connections/ConnectionManagement";
 
 const queryClient = new QueryClient();
 
@@ -42,13 +46,15 @@ const App = () => (
                   {/* Implemented Routes */}
                   <Route path="/users" element={<UserManagement />} />
                   <Route path="/roles" element={<RoleManagement />} />
+                  <Route path="/services" element={<ServiceManagement />} />
+                  <Route path="/services/:id/configure" element={<ServiceConfiguration />} />
+                  <Route path="/services/:id/test" element={<ServiceTest />} />
+                  <Route path="/connections" element={<ConnectionManagement />} />
                   
                   {/* These routes will be implemented later */}
-                  <Route path="/services" element={<div>Service Management (To be implemented)</div>} />
                   <Route path="/files" element={<div>File Management (To be implemented)</div>} />
                   <Route path="/logs" element={<div>Log Management (To be implemented)</div>} />
                   <Route path="/database-schema" element={<div>Database Schema Management (To be implemented)</div>} />
-                  <Route path="/connections" element={<div>Connection Management (To be implemented)</div>} />
                 </Route>
                 
                 {/* Catch-all route for 404 */}
