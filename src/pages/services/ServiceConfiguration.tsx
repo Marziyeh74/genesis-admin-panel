@@ -180,6 +180,15 @@ const ServiceConfiguration = () => {
     resizable: true,
   }), []);
 
+  // Functions to get row class for tables and procedures
+  const getTableRowClass = (params: any) => {
+    return selectedTable === params.data.name ? "ag-row-selected" : "";
+  };
+
+  const getProcedureRowClass = (params: any) => {
+    return selectedProcedure === params.data.name ? "ag-row-selected" : "";
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -271,9 +280,7 @@ const ServiceConfiguration = () => {
                         animateRows={true}
                         rowSelection="single"
                         onRowClicked={(event) => handleTableSelect(event.data.name)}
-                        rowClass={params => 
-                          selectedTable === params.data.name ? "ag-row-selected" : ""
-                        }
+                        getRowClass={getTableRowClass}
                       />
                     </div>
                   )}
@@ -287,9 +294,7 @@ const ServiceConfiguration = () => {
                         animateRows={true}
                         rowSelection="single"
                         onRowClicked={(event) => handleProcedureSelect(event.data.name)}
-                        rowClass={params => 
-                          selectedProcedure === params.data.name ? "ag-row-selected" : ""
-                        }
+                        getRowClass={getProcedureRowClass}
                       />
                     </div>
                   )}
