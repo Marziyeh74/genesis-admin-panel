@@ -10,11 +10,25 @@ import ServiceForm from "@/components/services/ServiceForm";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
+// Define the service type
+interface Service {
+  id: number;
+  name: string;
+  type: string;
+  status: string;
+  category: string;
+  source: string;
+  endpoint: string;
+  method: string;
+  contentType: string;
+}
+
 // Mock service data
-const mockServices = [
+const mockServices: Service[] = [
   { 
     id: 1, 
     name: "User Data Service", 
@@ -51,20 +65,20 @@ const mockServices = [
 ];
 
 const ServiceManagement = () => {
-  const [services, setServices] = useState(mockServices);
+  const [services, setServices] = useState<Service[]>(mockServices);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentService, setCurrentService] = useState(null);
-  const [serviceToDelete, setServiceToDelete] = useState(null);
+  const [currentService, setCurrentService] = useState<Service | null>(null);
+  const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleAddService = (serviceData) => {
+  const handleAddService = (serviceData: Partial<Service>) => {
     const newService = {
       id: services.length + 1,
       ...serviceData,
-    };
+    } as Service;
     setServices([...services, newService]);
     setIsAddDialogOpen(false);
     toast({
@@ -73,10 +87,10 @@ const ServiceManagement = () => {
     });
   };
 
-  const handleEditService = (serviceData) => {
+  const handleEditService = (serviceData: Partial<Service>) => {
     setServices(
       services.map((service) =>
-        service.id === currentService.id ? { ...service, ...serviceData } : service
+        service.id === currentService?.id ? { ...service, ...serviceData } as Service : service
       )
     );
     setIsEditDialogOpen(false);
@@ -86,7 +100,7 @@ const ServiceManagement = () => {
     });
   };
 
-  const openDeleteConfirmation = (service) => {
+  const openDeleteConfirmation = (service: Service) => {
     setServiceToDelete(service);
     setIsDeleteDialogOpen(true);
   };
@@ -104,12 +118,12 @@ const ServiceManagement = () => {
     });
   };
 
-  const openEditDialog = (service) => {
+  const openEditDialog = (service: Service) => {
     setCurrentService(service);
     setIsEditDialogOpen(true);
   };
 
-  const navigateToServiceConfig = (serviceId) => {
+  const navigateToServiceConfig = (serviceId: number) => {
     navigate(`/services/${serviceId}/configure`);
   };
 
@@ -118,15 +132,10 @@ const ServiceManagement = () => {
   };
 
   // AG Grid column definitions
-  const columnDefs = useMemo(() => [
+  const columnDefs = useMemo<ColDef<Service>[]>(() => [
     { headerName: "Name", field: "name", sortable: true, filter: true },
     { headerName: "Category", field: "category", sortable: true, filter: true },
-    { 
-      headerName: "Type", 
-      field: "type", 
-      sortable: true, 
-      filter: true 
-    },
+    { headerName: "Type", field: "type", sortable: true, filter: true },
     { 
       headerName: "Status", 
       field: "status", 
@@ -153,6 +162,8 @@ const ServiceManagement = () => {
       width: 180,
       cellRenderer: (params) => {
         const service = services.find(s => s.id === params.value);
+        if (!service) return null;
+        
         return (
           <TooltipProvider>
             <div className="flex items-center justify-center space-x-1">
