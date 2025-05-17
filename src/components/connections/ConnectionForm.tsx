@@ -22,7 +22,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Database, CheckCircle2, XCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // Connection schema validation
 const connectionSchema = z.object({
@@ -56,6 +57,12 @@ const defaultPortMap = {
 
 const ConnectionForm: React.FC<ConnectionFormProps> = ({ connection, onSubmit, onCancel }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{status: 'success' | 'error' | null, message: string}>({
+    status: null,
+    message: ''
+  });
+  const { toast } = useToast();
   
   const form = useForm<ConnectionFormValues>({
     resolver: zodResolver(connectionSchema),
@@ -85,6 +92,52 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ connection, onSubmit, o
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleTestConnection = async () => {
+    const formValues = form.getValues();
+    
+    if (!form.formState.isValid) {
+      form.trigger();
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fill in all required fields correctly before testing the connection."
+      });
+      return;
+    }
+    
+    setTestingConnection(true);
+    setTestResult({status: null, message: ''});
+    
+    // Simulate a test connection - in a real app, this would be an actual API call
+    setTimeout(() => {
+      // For demo purposes, succeed connections to MySQL and PostgreSQL but fail others
+      const willSucceed = ["MySQL", "PostgreSQL"].includes(formValues.type);
+      
+      if (willSucceed) {
+        setTestResult({
+          status: 'success',
+          message: `Successfully connected to ${formValues.database} on ${formValues.host}`
+        });
+        toast({
+          title: "Connection Successful",
+          description: `Successfully connected to ${formValues.database} on ${formValues.host}`,
+        });
+      } else {
+        setTestResult({
+          status: 'error',
+          message: `Failed to connect: Authentication failed for user ${formValues.username}`
+        });
+        toast({
+          variant: "destructive",
+          title: "Connection Failed",
+          description: `Could not connect to ${formValues.type} database. Check credentials and try again.`,
+        });
+      }
+      
+      setTestingConnection(false);
+    }, 1500);
   };
 
   return (
@@ -270,6 +323,33 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ connection, onSubmit, o
                 </div>
               </>
             )}
+            
+            {/* Connection test button */}
+            <div className="pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleTestConnection}
+                disabled={testingConnection}
+                className="w-full"
+              >
+                <Database className="mr-2 h-4 w-4" />
+                {testingConnection ? 'Testing Connection...' : 'Test Connection'}
+              </Button>
+              
+              {testResult.status && (
+                <div className={`mt-2 p-3 rounded-md flex items-center ${
+                  testResult.status === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
+                  {testResult.status === 'success' ? (
+                    <CheckCircle2 className="h-5 w-5 mr-2" />
+                  ) : (
+                    <XCircle className="h-5 w-5 mr-2" />
+                  )}
+                  <span className="text-sm">{testResult.message}</span>
+                </div>
+              )}
+            </div>
           </TabsContent>
           
           <TabsContent value="advanced" className="space-y-4 pt-4">
