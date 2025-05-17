@@ -1,4 +1,3 @@
-
 import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -36,12 +35,20 @@ const serviceSchema = z.object({
   contentType: z.enum(["application/json", "multipart/form-data", "application/x-www-form-urlencoded", "text/plain"]).default("application/json"),
   description: z.string().optional(),
   movieDescription: z.string().optional(),
-  params: z.array(
+  inputParams: z.array(
     z.object({
       key: z.string().min(1, { message: "Key is required" }),
       type: z.enum(["string", "number", "boolean", "object", "array", "date", "file"]),
       title: z.string().min(1, { message: "Title is required" }),
       required: z.boolean().default(false),
+    })
+  ).default([]),
+  outputParams: z.array(
+    z.object({
+      key: z.string().min(1, { message: "Key is required" }),
+      type: z.enum(["string", "number", "boolean", "object", "array", "date"]),
+      title: z.string().min(1, { message: "Title is required" }),
+      description: z.string().optional(),
     })
   ).default([]),
 });
@@ -69,16 +76,19 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
       contentType: "application/json",
       description: "",
       movieDescription: "",
-      params: [],
+      inputParams: [],
+      outputParams: [],
     },
   });
 
   const serviceType = form.watch("type");
-  const params = form.watch("params");
+  const inputParams = form.watch("inputParams");
+  const outputParams = form.watch("outputParams");
   const category = form.watch("category");
   const name = form.watch("name");
   const [deleteParamIndex, setDeleteParamIndex] = React.useState<number | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [deleteParamType, setDeleteParamType] = React.useState<"input" | "output">("input");
 
   // Generate API endpoint based on category and name
   React.useEffect(() => {
@@ -89,28 +99,46 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
     }
   }, [category, name, form, service]);
 
-  // Add a new parameter
-  const addParam = () => {
-    const currentParams = form.getValues("params") || [];
-    form.setValue("params", [
+  // Add a new input parameter
+  const addInputParam = () => {
+    const currentParams = form.getValues("inputParams") || [];
+    form.setValue("inputParams", [
       ...currentParams,
       { key: "", type: "string", title: "", required: false },
     ]);
   };
 
+  // Add a new output parameter
+  const addOutputParam = () => {
+    const currentParams = form.getValues("outputParams") || [];
+    form.setValue("outputParams", [
+      ...currentParams,
+      { key: "", type: "string", title: "", description: "" },
+    ]);
+  };
+
   // Remove a parameter
-  const removeParam = (index: number) => {
+  const removeParam = (index: number, type: "input" | "output") => {
     setDeleteParamIndex(index);
+    setDeleteParamType(type);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDeleteParam = () => {
     if (deleteParamIndex !== null) {
-      const currentParams = form.getValues("params") || [];
-      form.setValue(
-        "params",
-        currentParams.filter((_, i) => i !== deleteParamIndex)
-      );
+      if (deleteParamType === "input") {
+        const currentParams = form.getValues("inputParams") || [];
+        form.setValue(
+          "inputParams",
+          currentParams.filter((_, i) => i !== deleteParamIndex)
+        );
+      } else {
+        const currentParams = form.getValues("outputParams") || [];
+        form.setValue(
+          "outputParams",
+          currentParams.filter((_, i) => i !== deleteParamIndex)
+        );
+      }
       setIsDeleteDialogOpen(false);
       setDeleteParamIndex(null);
     }
@@ -141,9 +169,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
           onSubmit(data);
         })} className="space-y-6">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="params">Parameters</TabsTrigger>
+              <TabsTrigger value="input">Input Parameters</TabsTrigger>
+              <TabsTrigger value="output">Output Parameters</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
             </TabsList>
 
@@ -290,18 +319,18 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
               />
             </TabsContent>
             
-            <TabsContent value="params" className="pt-4">
+            <TabsContent value="input" className="pt-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">Input Parameters</h3>
-                <Button type="button" variant="outline" size="sm" onClick={addParam}>
+                <Button type="button" variant="outline" size="sm" onClick={addInputParam}>
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Add Parameter
                 </Button>
               </div>
 
-              {params.length === 0 ? (
+              {inputParams.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No parameters defined. Add parameters to configure service inputs.
+                  No input parameters defined. Add parameters to configure service inputs.
                 </div>
               ) : (
                 <Table>
@@ -315,12 +344,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {params.map((_, index) => (
+                    {inputParams.map((_, index) => (
                       <TableRow key={index}>
                         <TableCell>
                           <FormField
                             control={form.control}
-                            name={`params.${index}.key`}
+                            name={`inputParams.${index}.key`}
                             render={({ field }) => (
                               <FormControl>
                                 <Input className="h-8" placeholder="param_name" {...field} />
@@ -331,7 +360,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                         <TableCell>
                           <FormField
                             control={form.control}
-                            name={`params.${index}.type`}
+                            name={`inputParams.${index}.type`}
                             render={({ field }) => (
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
@@ -355,7 +384,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                         <TableCell>
                           <FormField
                             control={form.control}
-                            name={`params.${index}.title`}
+                            name={`inputParams.${index}.title`}
                             render={({ field }) => (
                               <FormControl>
                                 <Input className="h-8" placeholder="Display Title" {...field} />
@@ -366,7 +395,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                         <TableCell className="text-center">
                           <FormField
                             control={form.control}
-                            name={`params.${index}.required`}
+                            name={`inputParams.${index}.required`}
                             render={({ field }) => (
                               <FormControl>
                                 <input
@@ -386,7 +415,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                                 type="button" 
                                 variant="ghost" 
                                 size="sm"
-                                onClick={() => removeParam(index)}
+                                onClick={() => removeParam(index, "input")}
                                 className="h-8 w-8 p-0"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -405,6 +434,118 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
 
               <div className="text-sm text-muted-foreground mt-4">
                 Define the input parameters for this service. These will be used to generate documentation and validate requests.
+              </div>
+            </TabsContent>
+
+            <TabsContent value="output" className="pt-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Output Parameters</h3>
+                <Button type="button" variant="outline" size="sm" onClick={addOutputParam}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Parameter
+                </Button>
+              </div>
+
+              {outputParams.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No output parameters defined. Add parameters to configure service outputs.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parameter Key</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {outputParams.map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`outputParams.${index}.key`}
+                            render={({ field }) => (
+                              <FormControl>
+                                <Input className="h-8" placeholder="param_name" {...field} />
+                              </FormControl>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`outputParams.${index}.type`}
+                            render={({ field }) => (
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="string">String</SelectItem>
+                                  <SelectItem value="number">Number</SelectItem>
+                                  <SelectItem value="boolean">Boolean</SelectItem>
+                                  <SelectItem value="date">Date</SelectItem>
+                                  <SelectItem value="object">Object</SelectItem>
+                                  <SelectItem value="array">Array</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`outputParams.${index}.title`}
+                            render={({ field }) => (
+                              <FormControl>
+                                <Input className="h-8" placeholder="Display Title" {...field} />
+                              </FormControl>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`outputParams.${index}.description`}
+                            render={({ field }) => (
+                              <FormControl>
+                                <Input className="h-8" placeholder="Description" {...field} />
+                              </FormControl>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => removeParam(index, "output")}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete parameter</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+
+              <div className="text-sm text-muted-foreground mt-4">
+                Define the output parameters for this service. These will be used to generate documentation and validate responses.
               </div>
             </TabsContent>
 
@@ -510,13 +651,13 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this parameter.
+              This will permanently delete the parameter. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>No, Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteParam}>
-              Yes, Delete
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,5 +1,10 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "genesis-admin-panel",
+  "author": {
+    "email": "b.marziyeh74@gmail.com",
+    "name": "b",
+    "url": "https://github.com/Marziyeh74"
+  },
   "private": true,
   "version": "0.0.0",
   "type": "module",

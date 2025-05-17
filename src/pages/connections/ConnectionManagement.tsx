@@ -221,7 +221,7 @@ const ConnectionManagement = () => {
   }), []);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Connection Management</h1>
         <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -230,15 +230,7 @@ const ConnectionManagement = () => {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Database Connections</CardTitle>
-          <CardDescription>
-            Manage connections to your databases for services and schema management.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="ag-theme-alpine w-full h-[500px]">
+       <div className="ag-theme-alpine w-full h-[500px]">
             <AgGridReact
               rowData={connections}
               columnDefs={columnDefs}
@@ -249,8 +241,6 @@ const ConnectionManagement = () => {
               paginationPageSize={10}
             />
           </div>
-        </CardContent>
-      </Card>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-lg">

@@ -289,7 +289,7 @@ export default function RoleManagement() {
         </Button>
       </div>
 
-      <div className="flex items-center py-4">
+      <div className="flex items-center mt-4">
         <Input
           placeholder="Search roles..."
           value={search}

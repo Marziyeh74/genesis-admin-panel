@@ -226,7 +226,7 @@ export default function UserManagement() {
         </Button>
       </div>
 
-      <div className="flex items-center py-4">
+      <div className="flex items-center mt-4">
         <Input
           placeholder="Search users..."
           value={search}
