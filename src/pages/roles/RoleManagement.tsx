@@ -1,13 +1,5 @@
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -30,6 +22,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 
 // Define role type
 type Role = {
@@ -185,6 +181,98 @@ export default function RoleManagement() {
       day: 'numeric' 
     }).format(date);
   };
+  
+  // AG Grid column definitions
+  const columnDefs = useMemo<ColDef<Role>[]>(() => [
+    { headerName: "Name", field: "name", sortable: true, filter: true },
+    { headerName: "Description", field: "description", sortable: true, filter: true },
+    { 
+      headerName: "Permissions", 
+      field: "permissions", 
+      sortable: false, 
+      filter: false,
+      cellRenderer: (params: any) => {
+        const permissions = params.value;
+        if (!permissions || !permissions.length) return "No permissions";
+        
+        return (
+          <div className="flex flex-wrap gap-1">
+            {permissions.length > 3 ? (
+              <>
+                {permissions.slice(0, 2).map((permission: string) => (
+                  <span
+                    key={permission}
+                    className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary"
+                  >
+                    {permission}
+                  </span>
+                ))}
+                <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-secondary text-secondary-foreground">
+                  +{permissions.length - 2} more
+                </span>
+              </>
+            ) : (
+              permissions.map((permission: string) => (
+                <span
+                  key={permission}
+                  className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary"
+                >
+                  {permission}
+                </span>
+              ))
+            )}
+          </div>
+        );
+      }
+    },
+    { 
+      headerName: "Created At", 
+      field: "createdAt", 
+      sortable: true, 
+      filter: true,
+      cellRenderer: (params: any) => formatDate(params.value)
+    },
+    {
+      headerName: "Actions",
+      field: "id",
+      sortable: false,
+      filter: false,
+      width: 180,
+      cellRenderer: (params: any) => {
+        const role = roles.find(r => r.id === params.value);
+        if (!role) return null;
+        
+        return (
+          <div className="flex items-center justify-end space-x-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => openEditModal(role)}
+              className="flex items-center"
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-red-500 flex items-center"
+              onClick={() => openDeleteDialog(role)}
+            >
+              <ShieldX className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </div>
+        );
+      }
+    }
+  ], [roles]);
+
+  const defaultColDef = useMemo(() => ({
+    flex: 1,
+    minWidth: 100,
+    resizable: true,
+  }), []);
 
   return (
     <div className="space-y-6">
@@ -210,82 +298,16 @@ export default function RoleManagement() {
         />
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRoles.length > 0 ? (
-              filteredRoles.map((role) => (
-                <TableRow key={role.id}>
-                  <TableCell className="font-medium">{role.name}</TableCell>
-                  <TableCell>{role.description}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {role.permissions.length > 3 ? (
-                        <>
-                          {role.permissions.slice(0, 2).map((permission) => (
-                            <span
-                              key={permission}
-                              className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary"
-                            >
-                              {permission}
-                            </span>
-                          ))}
-                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-secondary text-secondary-foreground">
-                            +{role.permissions.length - 2} more
-                          </span>
-                        </>
-                      ) : (
-                        role.permissions.map((permission) => (
-                          <span
-                            key={permission}
-                            className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary"
-                          >
-                            {permission}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{formatDate(role.createdAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => openEditModal(role)}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-red-500"
-                      onClick={() => openDeleteDialog(role)}
-                    >
-                      <ShieldX className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  No roles found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="ag-theme-alpine w-full h-[500px]">
+        <AgGridReact
+          rowData={filteredRoles}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          animateRows={true}
+          rowSelection="single"
+          pagination={true}
+          paginationPageSize={10}
+        />
       </div>
 
       {/* Add Role Modal */}
