@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Card, 
@@ -19,12 +20,15 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import { ChevronLeft, Save, Play, Database, TableProperties, FileCode } from "lucide-react";
 import QueryBuilder from "@/components/services/QueryBuilder";
 import StoredProcedureForm from "@/components/services/StoredProcedureForm";
 import ApiConfigForm from "@/components/services/ApiConfigForm";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 
 // Mock data
 const mockService = {
@@ -42,13 +46,29 @@ const mockConnections = [
   { id: 3, name: "Analytics DB", type: "MSSQL" },
 ];
 
-const mockTables = [
+// Define types for database objects
+interface DatabaseTable {
+  name: string;
+  schema: string;
+}
+
+interface StoredProcedureParameter {
+  name: string;
+  type: string;
+}
+
+interface StoredProcedure {
+  name: string;
+  parameters: StoredProcedureParameter[];
+}
+
+const mockTables: DatabaseTable[] = [
   { name: "users", schema: "public" },
   { name: "orders", schema: "public" },
   { name: "products", schema: "inventory" },
 ];
 
-const mockStoredProcedures = [
+const mockStoredProcedures: StoredProcedure[] = [
   { name: "get_user_details", parameters: [{ name: "user_id", type: "INT" }] },
   { name: "update_order_status", parameters: [{ name: "order_id", type: "INT" }, { name: "status", type: "VARCHAR" }] },
   { name: "calculate_inventory", parameters: [] },
@@ -120,6 +140,45 @@ const ServiceConfiguration = () => {
   const handleTestService = () => {
     navigate(`/services/${id}/test`);
   };
+
+  // AG Grid column definitions for tables
+  const tableColumnDefs = useMemo<ColDef<DatabaseTable>[]>(() => [
+    { 
+      headerName: "Table Name", 
+      field: "name", 
+      sortable: true, 
+      filter: true 
+    },
+    { 
+      headerName: "Schema", 
+      field: "schema", 
+      sortable: true, 
+      filter: true 
+    }
+  ], []);
+
+  // AG Grid column definitions for procedures
+  const procedureColumnDefs = useMemo<ColDef<StoredProcedure>[]>(() => [
+    { 
+      headerName: "Procedure Name", 
+      field: "name", 
+      sortable: true, 
+      filter: true 
+    },
+    { 
+      headerName: "Parameters", 
+      field: "parameters", 
+      sortable: false, 
+      filter: false,
+      valueGetter: (params) => params.data?.parameters.length,
+    }
+  ], []);
+
+  const defaultColDef = useMemo(() => ({
+    flex: 1,
+    minWidth: 100,
+    resizable: true,
+  }), []);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -204,60 +263,34 @@ const ServiceConfiguration = () => {
                 
                 <div className="pt-2">
                   {objectType === "tables" && (
-                    <div className="max-h-64 overflow-y-auto border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Table Name</TableHead>
-                            <TableHead>Schema</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {mockTables.map((table) => (
-                            <TableRow 
-                              key={table.name} 
-                              className={
-                                selectedTable === table.name 
-                                  ? "bg-primary/10 cursor-pointer" 
-                                  : "cursor-pointer hover:bg-muted/50"
-                              }
-                              onClick={() => handleTableSelect(table.name)}
-                            >
-                              <TableCell>{table.name}</TableCell>
-                              <TableCell>{table.schema}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                    <div className="ag-theme-alpine h-64">
+                      <AgGridReact
+                        rowData={mockTables}
+                        columnDefs={tableColumnDefs}
+                        defaultColDef={defaultColDef}
+                        animateRows={true}
+                        rowSelection="single"
+                        onRowClicked={(event) => handleTableSelect(event.data.name)}
+                        rowClass={params => 
+                          selectedTable === params.data.name ? "ag-row-selected" : ""
+                        }
+                      />
                     </div>
                   )}
                   
                   {objectType === "procedures" && (
-                    <div className="max-h-64 overflow-y-auto border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Procedure Name</TableHead>
-                            <TableHead>Parameters</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {mockStoredProcedures.map((proc) => (
-                            <TableRow 
-                              key={proc.name} 
-                              className={
-                                selectedProcedure === proc.name 
-                                  ? "bg-primary/10 cursor-pointer" 
-                                  : "cursor-pointer hover:bg-muted/50"
-                              }
-                              onClick={() => handleProcedureSelect(proc.name)}
-                            >
-                              <TableCell>{proc.name}</TableCell>
-                              <TableCell>{proc.parameters.length}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                    <div className="ag-theme-alpine h-64">
+                      <AgGridReact
+                        rowData={mockStoredProcedures}
+                        columnDefs={procedureColumnDefs}
+                        defaultColDef={defaultColDef}
+                        animateRows={true}
+                        rowSelection="single"
+                        onRowClicked={(event) => handleProcedureSelect(event.data.name)}
+                        rowClass={params => 
+                          selectedProcedure === params.data.name ? "ag-row-selected" : ""
+                        }
+                      />
                     </div>
                   )}
                 </div>

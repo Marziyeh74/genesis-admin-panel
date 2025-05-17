@@ -1,13 +1,5 @@
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -30,6 +22,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 
 // Define user type
 type User = {
@@ -150,6 +146,70 @@ export default function UserManagement() {
     setSelectedUser(user);
     setIsDeleteDialogOpen(true);
   };
+  
+  // AG Grid column definitions
+  const columnDefs = useMemo<ColDef<User>[]>(() => [
+    { headerName: "Name", field: "name", sortable: true, filter: true },
+    { headerName: "Email", field: "email", sortable: true, filter: true },
+    { headerName: "Role", field: "role", sortable: true, filter: true },
+    { 
+      headerName: "Status", 
+      field: "status", 
+      sortable: true, 
+      filter: true,
+      cellRenderer: (params) => (
+        <span
+          className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+            params.value === "Active"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {params.value}
+        </span>
+      ),
+    },
+    {
+      headerName: "Actions",
+      field: "id",
+      sortable: false,
+      filter: false,
+      width: 180,
+      cellRenderer: (params) => {
+        const user = users.find(u => u.id === params.value);
+        if (!user) return null;
+        
+        return (
+          <div className="flex items-center justify-end space-x-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => openEditModal(user)}
+              className="flex items-center"
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-red-500 flex items-center"
+              onClick={() => openDeleteDialog(user)}
+            >
+              <UserX className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </div>
+        );
+      }
+    }
+  ], [users]);
+
+  const defaultColDef = useMemo(() => ({
+    flex: 1,
+    minWidth: 100,
+    resizable: true,
+  }), []);
 
   return (
     <div className="space-y-6">
@@ -175,65 +235,16 @@ export default function UserManagement() {
         />
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                        user.status === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {user.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => openEditModal(user)}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-red-500"
-                      onClick={() => openDeleteDialog(user)}
-                    >
-                      <UserX className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  No users found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="ag-theme-alpine w-full h-[500px]">
+        <AgGridReact
+          rowData={filteredUsers}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          animateRows={true}
+          rowSelection="single"
+          pagination={true}
+          paginationPageSize={10}
+        />
       </div>
 
       {/* Add User Modal */}

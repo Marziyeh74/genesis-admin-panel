@@ -1,22 +1,30 @@
 
-import React, { useState } from "react";
-import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell 
-} from "@/components/ui/table";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit, Trash2, Check, X, Server, Database } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ConnectionForm from "@/components/connections/ConnectionForm";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
+
+// Define the connection type
+interface Connection {
+  id: number;
+  name: string;
+  type: string;
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  status: string;
+}
 
 // Mock connections data
-const mockConnections = [
+const mockConnections: Connection[] = [
   { 
     id: 1, 
     name: "Main Database", 
@@ -50,18 +58,18 @@ const mockConnections = [
 ];
 
 const ConnectionManagement = () => {
-  const [connections, setConnections] = useState(mockConnections);
+  const [connections, setConnections] = useState<Connection[]>(mockConnections);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentConnection, setCurrentConnection] = useState(null);
+  const [currentConnection, setCurrentConnection] = useState<Connection | null>(null);
   const { toast } = useToast();
 
-  const handleAddConnection = (connectionData) => {
+  const handleAddConnection = (connectionData: Partial<Connection>) => {
     const newConnection = {
       id: connections.length + 1,
       ...connectionData,
       status: "Connected", // Assume successful connection for mock
-    };
+    } as Connection;
     setConnections([...connections, newConnection]);
     setIsAddDialogOpen(false);
     toast({
@@ -70,10 +78,10 @@ const ConnectionManagement = () => {
     });
   };
 
-  const handleEditConnection = (connectionData) => {
+  const handleEditConnection = (connectionData: Partial<Connection>) => {
     setConnections(
       connections.map((connection) =>
-        connection.id === currentConnection.id ? { ...connection, ...connectionData } : connection
+        connection.id === currentConnection?.id ? { ...connection, ...connectionData } as Connection : connection
       )
     );
     setIsEditDialogOpen(false);
@@ -83,7 +91,7 @@ const ConnectionManagement = () => {
     });
   };
 
-  const handleDeleteConnection = (id) => {
+  const handleDeleteConnection = (id: number) => {
     setConnections(connections.filter((connection) => connection.id !== id));
     toast({
       title: "Connection deleted",
@@ -91,7 +99,7 @@ const ConnectionManagement = () => {
     });
   };
 
-  const toggleConnectionStatus = (id) => {
+  const toggleConnectionStatus = (id: number) => {
     setConnections(
       connections.map((connection) =>
         connection.id === id
@@ -104,6 +112,8 @@ const ConnectionManagement = () => {
     );
     
     const connection = connections.find(c => c.id === id);
+    if (!connection) return;
+    
     const newStatus = connection.status === "Connected" ? "Disconnected" : "Connected";
     
     toast({
@@ -112,10 +122,103 @@ const ConnectionManagement = () => {
     });
   };
 
-  const openEditDialog = (connection) => {
+  const openEditDialog = (connection: Connection) => {
     setCurrentConnection(connection);
     setIsEditDialogOpen(true);
   };
+
+  // AG Grid column definitions
+  const columnDefs = useMemo<ColDef<Connection>[]>(() => [
+    { headerName: "Name", field: "name", sortable: true, filter: true },
+    { 
+      headerName: "Type", 
+      field: "type", 
+      sortable: true, 
+      filter: true,
+      cellRenderer: (params) => (
+        <div className="flex items-center">
+          <Database className="mr-2 h-4 w-4" />
+          {params.value}
+        </div>
+      )
+    },
+    { 
+      headerName: "Host", 
+      field: "host", 
+      sortable: true, 
+      filter: true,
+      valueGetter: (params) => `${params.data?.host}:${params.data?.port}`
+    },
+    { headerName: "Database", field: "database", sortable: true, filter: true },
+    { headerName: "Username", field: "username", sortable: true, filter: true },
+    { 
+      headerName: "Status", 
+      field: "status", 
+      sortable: true, 
+      filter: true,
+      cellRenderer: (params) => (
+        <span
+          className={`px-2 py-1 text-xs rounded-full ${
+            params.value === "Connected"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {params.value}
+        </span>
+      )
+    },
+    {
+      headerName: "Actions",
+      field: "id",
+      sortable: false,
+      filter: false,
+      width: 150,
+      cellRenderer: (params) => {
+        const connection = connections.find(c => c.id === params.value);
+        if (!connection) return null;
+        
+        return (
+          <div className="flex justify-end space-x-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleConnectionStatus(connection.id)}
+              title={connection.status === "Connected" ? "Disconnect" : "Connect"}
+            >
+              {connection.status === "Connected" ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openEditDialog(connection)}
+              title="Edit"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteConnection(connection.id)}
+              title="Delete"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      }
+    }
+  ], [connections]);
+
+  const defaultColDef = useMemo(() => ({
+    flex: 1,
+    minWidth: 100,
+    resizable: true,
+  }), []);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -135,78 +238,17 @@ const ConnectionManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Host</TableHead>
-                <TableHead>Database</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {connections.map((connection) => (
-                <TableRow key={connection.id}>
-                  <TableCell className="font-medium">{connection.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Database className="mr-2 h-4 w-4" />
-                      {connection.type}
-                    </div>
-                  </TableCell>
-                  <TableCell>{`${connection.host}:${connection.port}`}</TableCell>
-                  <TableCell>{connection.database}</TableCell>
-                  <TableCell>{connection.username}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        connection.status === "Connected"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {connection.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleConnectionStatus(connection.id)}
-                        title={connection.status === "Connected" ? "Disconnect" : "Connect"}
-                      >
-                        {connection.status === "Connected" ? (
-                          <X className="h-4 w-4" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(connection)}
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteConnection(connection.id)}
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="ag-theme-alpine w-full h-[500px]">
+            <AgGridReact
+              rowData={connections}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              animateRows={true}
+              rowSelection="single"
+              pagination={true}
+              paginationPageSize={10}
+            />
+          </div>
         </CardContent>
       </Card>
 
