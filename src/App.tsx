@@ -20,6 +20,7 @@ import ServiceManagement from "./pages/services/ServiceManagement";
 import ServiceConfiguration from "./pages/services/ServiceConfiguration";
 import ServiceTest from "./pages/services/ServiceTest";
 import ConnectionManagement from "./pages/connections/ConnectionManagement";
+import FileManagement from "./pages/files/FileManagement";
 
 const queryClient = new QueryClient();
 
@@ -50,9 +51,9 @@ const App = () => (
                   <Route path="/services/:id/configure" element={<ServiceConfiguration />} />
                   <Route path="/services/:id/test" element={<ServiceTest />} />
                   <Route path="/connections" element={<ConnectionManagement />} />
+                  <Route path="/files" element={<FileManagement />} />
                   
                   {/* These routes will be implemented later */}
-                  <Route path="/files" element={<div>File Management (To be implemented)</div>} />
                   <Route path="/logs" element={<div>Log Management (To be implemented)</div>} />
                   <Route path="/database-schema" element={<div>Database Schema Management (To be implemented)</div>} />
                 </Route>
