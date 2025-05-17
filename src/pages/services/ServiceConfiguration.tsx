@@ -182,24 +182,24 @@ const ServiceConfiguration = () => {
             {selectedConnection && (
               <>
                 <div className="pt-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger 
-                      value="tables" 
-                      onClick={() => handleObjectTypeChange("tables")}
-                      className={objectType === "tables" ? "bg-primary text-primary-foreground" : ""}
-                    >
-                      <TableProperties className="h-4 w-4 mr-2" />
-                      Tables
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="procedures" 
-                      onClick={() => handleObjectTypeChange("procedures")}
-                      className={objectType === "procedures" ? "bg-primary text-primary-foreground" : ""}
-                    >
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Procedures
-                    </TabsTrigger>
-                  </TabsList>
+                  <Tabs defaultValue="tables">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger 
+                        value="tables" 
+                        onClick={() => handleObjectTypeChange("tables")}
+                      >
+                        <TableProperties className="h-4 w-4 mr-2" />
+                        Tables
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="procedures" 
+                        onClick={() => handleObjectTypeChange("procedures")}
+                      >
+                        <FileCode className="h-4 w-4 mr-2" />
+                        Procedures
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
                 
                 <div className="pt-2">
