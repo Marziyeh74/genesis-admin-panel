@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,7 +21,6 @@ import ServiceConfiguration from "./pages/services/ServiceConfiguration";
 import ServiceTest from "./pages/services/ServiceTest";
 import ConnectionManagement from "./pages/connections/ConnectionManagement";
 import FileManagement from "./pages/files/FileManagement";
-import LogManagement from "./pages/logs/LogManagement";
 
 const queryClient = new QueryClient();
 
@@ -52,10 +52,10 @@ const App = () => (
                   <Route path="/services/:id/test" element={<ServiceTest />} />
                   <Route path="/connections" element={<ConnectionManagement />} />
                   <Route path="/files" element={<FileManagement />} />
-                  <Route path="/logs" element={<LogManagement />} />
                   
                   {/* These routes will be implemented later */}
                   <Route path="/database-schema" element={<div>Database Schema Management (To be implemented)</div>} />
+                  <Route path="/logs" element={<div>Log Management (To be implemented)</div>} />
                 </Route>
                 
                 {/* Catch-all route for 404 */}
