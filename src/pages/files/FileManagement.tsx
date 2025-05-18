@@ -8,75 +8,93 @@ import { CreateFolderDialog } from "@/components/file-management/CreateFolderDia
 import { FileScheduleDialog } from "@/components/file-management/FileScheduleDialog";
 import { FileCard } from "@/components/file-management/FileCard";
 import { FileToolbar } from "@/components/file-management/FileToolbar";
-import { FileItem } from "@/types/file-management";
+import { FileSystemItem, FileItem, FolderItem } from "@/types/file-management";
 
 const FileManagement = () => {
-  const [files, setFiles] = useState<FileItem[]>([
+  const [files, setFiles] = useState<FileSystemItem[]>([
     {
       id: '1',
       name: 'Project Report.pdf',
-      type: 'pdf',
-      size: '2.4 MB',
-      lastModified: new Date('2023-05-15'),
-      isPublic: true,
-      tags: ['report', 'project'],
-      thumbnail: null
+      type: 'file',
+      extension: 'pdf',
+      size: 2457600, // 2.4 MB in bytes
+      privacy: 'public',
+      createdAt: '2023-05-15T10:30:00Z',
+      updatedAt: '2023-05-15T10:30:00Z',
+      scheduleStatus: 'active',
+      url: '/files/project-report.pdf',
+      thumbnailUrl: null,
+      parentId: undefined
     },
     {
       id: '2',
       name: 'Company Logo.png',
-      type: 'image',
-      size: '540 KB',
-      lastModified: new Date('2023-05-10'),
-      isPublic: true,
-      tags: ['logo', 'branding'],
-      thumbnail: '/placeholder.svg'
+      type: 'file',
+      extension: 'png',
+      size: 552960, // 540 KB in bytes
+      privacy: 'public',
+      createdAt: '2023-05-10T14:20:00Z',
+      updatedAt: '2023-05-10T14:20:00Z',
+      scheduleStatus: 'active',
+      url: '/files/company-logo.png',
+      thumbnailUrl: '/placeholder.svg',
+      parentId: undefined
     },
-    // More sample files...
+    {
+      id: '3',
+      name: 'Documents',
+      type: 'folder',
+      createdAt: '2023-05-01T09:00:00Z',
+      updatedAt: '2023-05-01T09:00:00Z',
+      itemCount: 5,
+      parentId: undefined
+    }
   ]);
 
   const [currentPath, setCurrentPath] = useState<string[]>([]);
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<FileSystemItem | null>(null);
   const [isUploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [isCreateFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
 
   // File operations
-  const handleFileUpload = (newFiles: FileItem[]) => {
-    setFiles([...files, ...newFiles]);
+  const handleFileUpload = () => {
     setUploadDialogOpen(false);
+    // In a real application, this would be updated after the actual upload
+    // Refresh files list
+    handleRefreshFiles();
   };
 
-  const handleCreateFolder = (folderName: string) => {
-    const newFolder: FileItem = {
-      id: Date.now().toString(),
-      name: folderName,
-      type: 'folder',
-      size: '0 KB',
-      lastModified: new Date(),
-      isPublic: false,
-      tags: [],
-      thumbnail: null
-    };
-    
-    setFiles([...files, newFolder]);
+  const handleCreateFolder = () => {
     setCreateFolderDialogOpen(false);
+    // In a real application, this would be updated after folder creation
+    // Refresh files list
+    handleRefreshFiles();
   };
 
-  const handleFileSelect = (file: FileItem) => {
-    if (file.type === 'folder') {
+  const handleRefreshFiles = () => {
+    // In a real application, this would fetch the latest files from the backend
+    // For now, we'll just refresh the UI
+  };
+
+  const handleFileSelect = (item: FileSystemItem) => {
+    if (item.type === 'folder') {
       // Navigate into folder
-      setCurrentPath([...currentPath, file.name]);
+      setCurrentPath([...currentPath, item.name]);
+      setCurrentFolderId(item.id);
     } else {
       // Select file
-      setSelectedFile(selectedFile?.id === file.id ? null : file);
+      setSelectedItem(selectedItem?.id === item.id ? null : item);
     }
   };
 
   const handleNavigateBack = () => {
     if (currentPath.length > 0) {
       setCurrentPath(currentPath.slice(0, -1));
+      // Would need to get parent folder ID from backend in a real app
+      setCurrentFolderId(undefined);
     }
   };
 
@@ -84,39 +102,45 @@ const FileManagement = () => {
     setSearchQuery(query);
   };
 
+  const handleFilter = (by: string, value: string) => {
+    // Implement filtering logic here
+    console.log(`Filter by ${by}: ${value}`);
+  };
+
+  // Current folder path for breadcrumbs
+  const folderPath = currentPath.map((name, index) => {
+    // In a real app, we'd have the actual folder IDs
+    return { id: `folder-${index}`, name };
+  });
+
   // Filter files based on current path and search query
   const filteredFiles = files.filter(file => {
-    return file.name.toLowerCase().includes(searchQuery.toLowerCase());
+    // Filter by parent folder
+    const inCurrentFolder = currentFolderId 
+      ? file.parentId === currentFolderId
+      : file.parentId === undefined;
+    
+    // Filter by search query
+    const matchesSearch = file.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return inCurrentFolder && matchesSearch;
   });
 
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold">File Management</h1>
-        <div className="flex space-x-2">
-          <Button 
-            onClick={() => setCreateFolderDialogOpen(true)} 
-            variant="outline"
-            className="flex items-center"
-          >
-            <FolderPlus className="mr-2 h-4 w-4" />
-            New Folder
-          </Button>
-          <Button 
-            onClick={() => setUploadDialogOpen(true)}
-            className="flex items-center"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload
-          </Button>
-        </div>
       </div>
 
       {/* File Toolbar with navigation and search */}
       <FileToolbar 
-        currentPath={currentPath} 
-        onNavigateBack={handleNavigateBack}
+        folderPath={folderPath}
+        onNavigateToFolder={setCurrentFolderId}
         onSearch={handleSearch}
+        onFilter={handleFilter}
+        onUploadComplete={handleRefreshFiles}
+        onFolderCreated={handleRefreshFiles}
+        currentFolderId={currentFolderId}
       />
 
       {/* File Gallery */}
@@ -124,16 +148,25 @@ const FileManagement = () => {
         <CardContent className="p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filteredFiles.length > 0 ? (
-              filteredFiles.map((file) => (
+              filteredFiles.map((item) => (
                 <FileCard 
-                  key={file.id} 
-                  file={file}
-                  isSelected={selectedFile?.id === file.id}
-                  onClick={() => handleFileSelect(file)}
-                  onSchedule={() => {
-                    setSelectedFile(file);
-                    setScheduleDialogOpen(true);
+                  key={item.id} 
+                  item={item}
+                  onClick={handleFileSelect}
+                  onDelete={(item) => {
+                    // Delete implementation would go here
+                    console.log(`Delete ${item.name}`);
+                    handleRefreshFiles();
                   }}
+                  onTogglePrivacy={item.type === 'file' ? (fileItem) => {
+                    // Toggle privacy implementation would go here
+                    console.log(`Toggle privacy for ${fileItem.name}`);
+                    handleRefreshFiles();
+                  } : undefined}
+                  onSchedule={item.type === 'file' ? (fileItem) => {
+                    setSelectedItem(fileItem);
+                    setScheduleDialogOpen(true);
+                  } : undefined}
                 />
               ))
             ) : (
@@ -156,20 +189,25 @@ const FileManagement = () => {
       <FileUploadDialog
         open={isUploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
-        onUpload={handleFileUpload}
+        currentFolderId={currentFolderId}
+        onUploadComplete={handleRefreshFiles}
       />
       
       <CreateFolderDialog
         open={isCreateFolderDialogOpen}
         onOpenChange={setCreateFolderDialogOpen}
-        onCreateFolder={handleCreateFolder}
+        currentFolderId={currentFolderId}
+        onFolderCreated={handleCreateFolder}
       />
       
-      <FileScheduleDialog
-        open={isScheduleDialogOpen}
-        onOpenChange={setScheduleDialogOpen}
-        file={selectedFile}
-      />
+      {selectedItem?.type === 'file' && (
+        <FileScheduleDialog
+          open={isScheduleDialogOpen}
+          onOpenChange={setScheduleDialogOpen}
+          file={selectedItem as FileItem}
+          onScheduleComplete={handleRefreshFiles}
+        />
+      )}
     </div>
   );
 };
