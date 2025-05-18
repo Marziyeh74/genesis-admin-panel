@@ -1,11 +1,19 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -19,9 +27,21 @@ import { useToast } from "@/hooks/use-toast";
 import SqlEditor from "./SqlEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, Film } from "lucide-react";
+import { PlusCircle, Trash2, Film, Lock, Unlock } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Mock data for roles
+const mockRoles = [
+  { id: 1, name: "Admin" },
+  { id: 2, name: "Editor" },
+  { id: 3, name: "Viewer" },
+  { id: 4, name: "Manager" },
+  { id: 5, name: "Developer" },
+  { id: 6, name: "Tester" },
+  { id: 7, name: "Guest" },
+];
 
 // Service schema validation
 const serviceSchema = z.object({
@@ -34,12 +54,12 @@ const serviceSchema = z.object({
   method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]).default("GET"),
   contentType: z.enum(["application/json", "multipart/form-data", "application/x-www-form-urlencoded", "text/plain"]).default("application/json"),
   description: z.string().optional(),
-  movieDescription: z.string().optional(),
+  accessibility: z.enum(["public", "private"]).default("public"),
+  selectedRoles: z.array(z.number()).default([]),
   inputParams: z.array(
     z.object({
       key: z.string().min(1, { message: "Key is required" }),
       type: z.enum(["string", "number", "boolean", "object", "array", "date", "file"]),
-      title: z.string().min(1, { message: "Title is required" }),
       required: z.boolean().default(false),
     })
   ).default([]),
@@ -47,8 +67,7 @@ const serviceSchema = z.object({
     z.object({
       key: z.string().min(1, { message: "Key is required" }),
       type: z.enum(["string", "number", "boolean", "object", "array", "date"]),
-      title: z.string().min(1, { message: "Title is required" }),
-      description: z.string().optional(),
+      required: z.boolean().default(false),
     })
   ).default([]),
 });
@@ -75,7 +94,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
       method: "GET",
       contentType: "application/json",
       description: "",
-      movieDescription: "",
+      accessibility: "public",
+      selectedRoles: [],
       inputParams: [],
       outputParams: [],
     },
@@ -86,9 +106,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
   const outputParams = form.watch("outputParams");
   const category = form.watch("category");
   const name = form.watch("name");
-  const [deleteParamIndex, setDeleteParamIndex] = React.useState<number | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-  const [deleteParamType, setDeleteParamType] = React.useState<"input" | "output">("input");
+  const accessibility = form.watch("accessibility");
+  const [deleteParamIndex, setDeleteParamIndex] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteParamType, setDeleteParamType] = useState<"input" | "output">("input");
 
   // Generate API endpoint based on category and name
   React.useEffect(() => {
@@ -104,7 +125,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
     const currentParams = form.getValues("inputParams") || [];
     form.setValue("inputParams", [
       ...currentParams,
-      { key: "", type: "string", title: "", required: false },
+      { key: "", type: "string", required: false },
     ]);
   };
 
@@ -113,7 +134,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
     const currentParams = form.getValues("outputParams") || [];
     form.setValue("outputParams", [
       ...currentParams,
-      { key: "", type: "string", title: "", description: "" },
+      { key: "", type: "string", required: false },
     ]);
   };
 
@@ -144,6 +165,37 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
     }
   };
 
+  // Toggle role selection
+  const toggleRoleSelection = (roleId: number) => {
+    const currentRoles = form.getValues("selectedRoles") || [];
+    const roleIndex = currentRoles.indexOf(roleId);
+    
+    if (roleIndex > -1) {
+      form.setValue(
+        "selectedRoles",
+        currentRoles.filter((id) => id !== roleId)
+      );
+    } else {
+      form.setValue("selectedRoles", [...currentRoles, roleId]);
+    }
+  };
+
+  // Check if a role is selected
+  const isRoleSelected = (roleId: number) => {
+    const selectedRoles = form.getValues("selectedRoles") || [];
+    return selectedRoles.includes(roleId);
+  };
+
+  // Select all roles
+  const selectAllRoles = () => {
+    form.setValue("selectedRoles", mockRoles.map(role => role.id));
+  };
+
+  // Deselect all roles
+  const deselectAllRoles = () => {
+    form.setValue("selectedRoles", []);
+  };
+
   // Update source description based on selected type
   const getSourceDescription = () => {
     switch (serviceType) {
@@ -169,11 +221,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
           onSubmit(data);
         })} className="space-y-6">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="input">Input Parameters</TabsTrigger>
-              <TabsTrigger value="output">Output Parameters</TabsTrigger>
+              <TabsTrigger value="input">Input</TabsTrigger>
+              <TabsTrigger value="output">Output</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <TabsTrigger value="accessibility">Accessibility</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 pt-4">
@@ -206,24 +259,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                     <FormDescription>
                       Group related services under a category
                     </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe what this service does" 
-                        className="resize-none" 
-                        {...field} 
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -278,6 +313,28 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
 
               <FormField
                 control={form.control}
+                name="endpoint"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>API Endpoint</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="/api/category/service-name" 
+                        {...field} 
+                        readOnly 
+                        className="bg-muted"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      The endpoint path for accessing this service (auto-generated)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="source"
                 render={({ field }) => (
                   <FormItem>
@@ -295,23 +352,6 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                     </FormControl>
                     <FormDescription>
                       {getSourceDescription()}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endpoint"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>API Endpoint</FormLabel>
-                    <FormControl>
-                      <Input placeholder="/api/category/service-name" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      The endpoint path for accessing this service (auto-generated)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -338,8 +378,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                     <TableRow>
                       <TableHead>Parameter Key</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Required</TableHead>
+                      <TableHead className="text-center">Required</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -381,28 +420,16 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                             )}
                           />
                         </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`inputParams.${index}.title`}
-                            render={({ field }) => (
-                              <FormControl>
-                                <Input className="h-8" placeholder="Display Title" {...field} />
-                              </FormControl>
-                            )}
-                          />
-                        </TableCell>
                         <TableCell className="text-center">
                           <FormField
                             control={form.control}
                             name={`inputParams.${index}.required`}
                             render={({ field }) => (
                               <FormControl>
-                                <input
-                                  type="checkbox"
+                                <Checkbox
                                   checked={field.value}
-                                  onChange={field.onChange}
-                                  className="h-4 w-4"
+                                  onCheckedChange={field.onChange}
+                                  className="mx-auto"
                                 />
                               </FormControl>
                             )}
@@ -433,7 +460,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
               )}
 
               <div className="text-sm text-muted-foreground mt-4">
-                Define the input parameters for this service. These will be used to generate documentation and validate requests.
+                Define the input parameters for this service. These will be used to validate requests.
               </div>
             </TabsContent>
 
@@ -456,8 +483,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                     <TableRow>
                       <TableHead>Parameter Key</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Description</TableHead>
+                      <TableHead className="text-center">Required</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -498,24 +524,17 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
                             )}
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <FormField
                             control={form.control}
-                            name={`outputParams.${index}.title`}
+                            name={`outputParams.${index}.required`}
                             render={({ field }) => (
                               <FormControl>
-                                <Input className="h-8" placeholder="Display Title" {...field} />
-                              </FormControl>
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`outputParams.${index}.description`}
-                            render={({ field }) => (
-                              <FormControl>
-                                <Input className="h-8" placeholder="Description" {...field} />
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  className="mx-auto"
+                                />
                               </FormControl>
                             )}
                           />
@@ -545,7 +564,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
               )}
 
               <div className="text-sm text-muted-foreground mt-4">
-                Define the output parameters for this service. These will be used to generate documentation and validate responses.
+                Define the output parameters for this service. These will be used to shape the response.
               </div>
             </TabsContent>
 
@@ -610,27 +629,121 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
 
                 <FormField
                   control={form.control}
-                  name="movieDescription"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Movie Description</FormLabel>
-                      <div className="flex items-center gap-2">
-                        <Film className="h-4 w-4 text-muted-foreground" />
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Enter movie description" 
-                            className="resize-none" 
-                            {...field} 
-                          />
-                        </FormControl>
-                      </div>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe what this service does" 
+                          className="min-h-[120px] resize-none" 
+                          {...field} 
+                        />
+                      </FormControl>
                       <FormDescription>
-                        Describe the movie or media content this service provides
+                        Detailed description about this service's purpose and functionality
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="accessibility" className="pt-4">
+              <div className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="accessibility"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Access Control</FormLabel>
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="public"
+                            checked={field.value === "public"}
+                            onCheckedChange={() => field.onChange("public")}
+                          />
+                          <label
+                            htmlFor="public"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                          >
+                            <Unlock className="h-4 w-4 mr-2" />
+                            Public (accessible to everyone)
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="private"
+                            checked={field.value === "private"}
+                            onCheckedChange={() => field.onChange("private")}
+                          />
+                          <label
+                            htmlFor="private"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                          >
+                            <Lock className="h-4 w-4 mr-2" />
+                            Private (role-based access)
+                          </label>
+                        </div>
+                      </div>
+                      <FormDescription>
+                        Define who can access this service
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {accessibility === "private" && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <FormLabel>Select Roles</FormLabel>
+                      <div className="space-x-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={selectAllRoles}
+                        >
+                          Select All
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={deselectAllRoles}
+                        >
+                          Deselect All
+                        </Button>
+                      </div>
+                    </div>
+                    <FormDescription>
+                      Choose which roles can access this service
+                    </FormDescription>
+                    <ScrollArea className="h-[200px] border rounded-md p-2">
+                      <div className="space-y-2 p-2">
+                        {mockRoles.map((role) => (
+                          <div key={role.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`role-${role.id}`}
+                              checked={isRoleSelected(role.id)}
+                              onCheckedChange={() => toggleRoleSelection(role.id)}
+                            />
+                            <label
+                              htmlFor={`role-${role.id}`}
+                              className="text-sm font-medium leading-none"
+                            >
+                              {role.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
