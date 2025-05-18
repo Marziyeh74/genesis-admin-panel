@@ -21,6 +21,8 @@ import ServiceConfiguration from "./pages/services/ServiceConfiguration";
 import ServiceTest from "./pages/services/ServiceTest";
 import ConnectionManagement from "./pages/connections/ConnectionManagement";
 import FileManagement from "./pages/files/FileManagement";
+import LogManagement from "./pages/logs/LogManagement";
+import DatabaseSchema from "./pages/database/DatabaseSchema";
 
 const queryClient = new QueryClient();
 
@@ -52,10 +54,8 @@ const App = () => (
                   <Route path="/services/:id/test" element={<ServiceTest />} />
                   <Route path="/connections" element={<ConnectionManagement />} />
                   <Route path="/files" element={<FileManagement />} />
-                  
-                  {/* These routes will be implemented later */}
-                  <Route path="/database-schema" element={<div>Database Schema Management (To be implemented)</div>} />
-                  <Route path="/logs" element={<div>Log Management (To be implemented)</div>} />
+                  <Route path="/logs" element={<LogManagement />} />
+                  <Route path="/database-schema" element={<DatabaseSchema />} />
                 </Route>
                 
                 {/* Catch-all route for 404 */}
