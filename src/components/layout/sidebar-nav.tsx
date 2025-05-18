@@ -11,6 +11,7 @@ import {
   Settings,
   Activity,
   Folder,
+  Scroll,
 } from "lucide-react";
 
 interface SidebarNavProps {
@@ -53,7 +54,7 @@ const navItems: NavItem[] = [
   {
     title: "Log Management",
     href: "/logs",
-    icon: Activity,
+    icon: Scroll,
   },
   {
     title: "Database Schema",
