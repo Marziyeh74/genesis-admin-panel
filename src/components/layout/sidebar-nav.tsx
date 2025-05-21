@@ -12,6 +12,8 @@ import {
   Activity,
   Folder,
   Scroll,
+  Table,
+  Columns,
 } from "lucide-react";
 
 interface SidebarNavProps {
