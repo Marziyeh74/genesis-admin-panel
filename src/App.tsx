@@ -23,6 +23,7 @@ import ConnectionManagement from "./pages/connections/ConnectionManagement";
 import FileManagement from "./pages/files/FileManagement";
 import LogManagement from "./pages/logs/LogManagement";
 import DatabaseSchema from "./pages/database/DatabaseSchema";
+import Profile from "./pages/profile/Profile";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
                   <Route path="/files" element={<FileManagement />} />
                   <Route path="/logs" element={<LogManagement />} />
                   <Route path="/database-schema" element={<DatabaseSchema />} />
+                  <Route path="/profile" element={<Profile />} />
                 </Route>
                 
                 {/* Catch-all route for 404 */}
